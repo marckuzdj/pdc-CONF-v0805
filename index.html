@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v1</h3>
+    <h3>Passagem de Carga | Conferência v2</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -685,7 +685,8 @@ function resetBotaoCadastro(btn, textoOriginal) {
 
 // --- 5. LOGICA DE CONFERÊNCIA (SINCRO COM ÂNCORA DE PROGRESSO) ---
 async function atualizarDadosExtras() {
-    const selectedId = document.getElementById("romaneio").value;
+    const selectRomaneio = document.getElementById("romaneio");
+    const selectedId = selectRomaneio.value;
     const btnIniciar = document.getElementById("btnIniciar");
     const statusInfo = document.getElementById("status-info");
     
@@ -693,6 +694,20 @@ async function atualizarDadosExtras() {
     const info = dadosCompletos.find(r => r.Romaneio === selectedId);
 
     if (info) {
+        // --- VALIDAÇÃO DE TOKEN INTERCEPTADA ---
+        const tokenCorreto = info.Token ? info.Token.toString().trim() : "";
+        const tokenUsuario = prompt("Por favor, insira o TOKEN de segurança para este Romaneio:");
+
+        if (tokenUsuario === null || tokenUsuario.trim() !== tokenCorreto) {
+            alert("❌ Token incorreto ou não informado! Acesso negado.");
+            selectRomaneio.value = ""; // Reseta a seleção no HTML
+            if(typeof limparCamposExtras === 'function') limparCamposExtras();
+            if (statusInfo) statusInfo.style.display = "none";
+            const progressoContainer = document.getElementById("progresso-lote") || document.querySelector(".progress-container");
+            if (progressoContainer) progressoContainer.style.display = "none";
+            return; // Bloqueia a execução do restante da função
+        }
+
         // Preenche campos informativos
         document.getElementById("campo_operador").value = info.Operador || "";
         document.getElementById("transp").value = info.Transp || "";
@@ -784,7 +799,6 @@ async function atualizarDadosExtras() {
         }
     }
 }
-
 
 
 
