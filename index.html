@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v17</h3>
+    <h3>Passagem de Carga | Conferência v18</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -1108,9 +1108,21 @@ async function enviarDadosFinais() {
         const canvas = document.getElementById('canvasAssinatura');
         const assinaturaBase64 = canvas ? canvas.toDataURL("image/png") : "";
 
-        // --- CAPTURA EXATA E ALINHADA COM O SEU ID DO HTML ---
+        // 1. CAPTURA O STATUS VISUAL DA TELA
         const elementoProgresso = document.getElementById("txt-progresso");
         const statusProgresso = elementoProgresso ? elementoProgresso.innerText.trim() : "Conferência finalizada via APP";
+
+        // 2. DETECÇÃO DINÂMICA DO DISPOSITIVO UTILIZADO
+        // Verifica se o leitor USB estava visível na tela ou se foi usado o Mobile (Câmera)
+        const usbContainer = document.getElementById("container-leitor-usb");
+        const sufixoDispositivo = (usbContainer && usbContainer.style.display !== "none") ? "via USB" : "via Mobile";
+
+        // 3. IDENTIFICAÇÃO DE LEITURA (100% OU PARCIAL)
+        // Se a variável global de faltantes guardada no 'finalizarLote' for maior que zero, é parcial
+        const faltantesLote = window.qtdFaltantesLoteAtual || 0;
+        const textoObsDefinitivo = faltantesLote > 0 
+            ? `Conferencia Parcial ${sufixoDispositivo}` 
+            : `Conferencia Finalizada ${sufixoDispositivo}`;
 
         const payload = {
             action: "finalizarLote",
@@ -1121,8 +1133,8 @@ async function enviarDadosFinais() {
             assinatura: assinaturaBase64,
             conferencia: new Date().toLocaleString("pt-BR"),
             intercorrencia: intercorrenciaFinal, 
-            obs_final: "Conferência finalizada via APP",
-            status_lote: statusProgresso // Injeta o texto exato do seu ID (ex: "13 / 20 Pedidos (65%)")
+            obs_final: textoObsDefinitivo, // Injeta dinamicamente o texto com a regra do dispositivo
+            status_lote: statusProgresso 
         };
 
         const response = await fetch(urlSheets, {
@@ -1145,10 +1157,8 @@ async function enviarDadosFinais() {
                 dadosCompletos.forEach(info => select.add(new Option(info.Romaneio, info.Romaneio)));
             }
 
-            // --- LÓGICA DE DUPLO PROMPT COM UPDATE NA PLANILHA ---
             // --- LÓGICA DE DUPLO PROMPT CONDICIONAL ---
             setTimeout(async () => {
-                // SÓ PERGUNTA SE NÃO TIVER PASSADO PELA TELA DE INTERCORRÊNCIA ANTES
                 if (!pulouComentarioFinal) {
                     const querComentario = confirm("✅ Enviado! Deseja adicionar um comentário?");
                     
@@ -1189,6 +1199,7 @@ async function enviarDadosFinais() {
         }
     }
 }
+
 
 
 
