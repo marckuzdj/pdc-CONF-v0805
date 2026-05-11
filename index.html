@@ -1241,18 +1241,26 @@ async function finalizarLote() {
         const response = await fetch(`${urlSheets}?action=verificarPendencias&romaneio=${encodeURIComponent(romaneioVal)}`);
         const check = await response.json();
 
-        // 1. Verifica Pendências (Standby)
+        // 1. Verifica Pendências (Nova Lógica com Alerta de Contagem e Prompt Obrigatório)
         if (check.faltantes && check.faltantes.length > 0) {
-            if (confirm(`⚠️ Pendentes: ${check.faltantes.length}. Colocar em espera?`)) {
+            const qtdFaltantes = check.faltantes.length;
+            
+            // Mensagem e fluxo customizado conforme especificação estrutural
+            const querContinuar = confirm(`⚠️ Atenção: Faltam conferir ${qtdFaltantes} itens neste lote.\n\nPara abortar a conferencia do romaneio, é obrigatório registrar intercorrencia. Continuar?`);
+            
+            if (querContinuar) {
+                // Guarda de forma segura o saldo no escopo do cliente para o prefixo
+                window.qtdFaltantesLoteAtual = qtdFaltantes;
+                pulouComentarioFinal = true; // Desativa o prompt duplo ao fim
                 showScreen('screen-intercorrencia'); 
             }
+            
             btn.disabled = false;
             btn.innerText = "Finalizar Lote";
             return;
         }
 
         // 2. Auditoria de Volumes (Apenas se 100% lido)
-        // ... dentro da lógica de volumes em finalizarLote ...
         const confirmouVolumes = confirm(`Confirmar o total de volumes: ${ttVolumes}?`);
         
         if (confirmouVolumes) {
@@ -1261,22 +1269,20 @@ async function finalizarLote() {
         } else {
             alert("Por favor, informe o motivo da divergência de volumes.");
             pulouComentarioFinal = true; // JÁ COMENTOU AQUI, então pula o prompt final
+            window.qtdFaltantesLoteAtual = 0; // Marca zero pois o erro foi de volume e não de bipes faltantes
             showScreen('screen-intercorrencia'); 
             btn.disabled = false;
             btn.innerText = "Finalizar Lote";
             return; 
         }
 
-
-        // 3. Performance: Desliga Hardware
+        // 3. Performance: Desliga Hardware (Mantido original)
         const usbField = document.getElementById("container-leitor-usb");
         const camField = document.getElementById("reader");
         if (usbField) usbField.style.display = "none";
         if (camField) camField.style.display = "none";
 
-// --- SUCESSO 100%: LIMPEZA PARA ASSINATURA ---
-
-// 1. DESLIGA A CÂMERA (HTML5QRCODE) - Vital para não travar o desenho da assinatura
+        // --- SUCESSO 100%: LIMPEZA PARA ASSINATURA ---
         if (typeof html5QrCode !== "undefined") {
             try {
                 if (html5QrCode.getState() === 2) { // 2 = Scanning
@@ -1285,7 +1291,6 @@ async function finalizarLote() {
             } catch (e) { console.warn("Erro ao parar câmera:", e); }
         }
         
-        // 2. ESCONDE O CAMPO USB E A CÂMERA (Usando seu ID Real)
         const leitorUsb = document.getElementById("container-leitor-usb");
         const leitorCam = document.getElementById("reader");
         const btnPendencias = document.querySelector(".btn-pendencias") || document.getElementById("btn-pendencias");
@@ -1294,9 +1299,7 @@ async function finalizarLote() {
         if (leitorCam) leitorCam.style.setProperty("display", "none", "important");
         if (btnPendencias) btnPendencias.style.display = "none";
         
-        // 3. LIBERA A ASSINATURA
         await prepararFaseAssinatura(btn, areaAssinatura);
-
 
     } catch (e) {
         enviandoDados = false;
@@ -1306,25 +1309,42 @@ async function finalizarLote() {
     }
 }
 
-
-
-
-
-// Nova função para quando o usuário registra o motivo na tela de Stand By
+// Nova função adaptada com validação de campos obrigatórios e fluxo automático de assinatura
 async function registrarIntercorrencia() {
-    const motivo = document.getElementById("select-motivo").value;
-    const obs = document.getElementById("obs-intercorrencia").value;
+    const motivoSelect = document.getElementById("select-motivo");
+    const obsInput = document.getElementById("obs-intercorrencia");
+    
+    const motivo = motivoSelect ? motivoSelect.value.trim() : "";
+    const obs = obsInput ? obsInput.value.trim() : "";
+    
     const btnMain = document.querySelector("button[onclick='finalizarLote()']");
     const areaAss = document.getElementById("areaAssinatura");
 
-    if (!motivo) return alert("Por favor, selecione o motivo!");
+    // Validação estrita de obrigatoriedade dos dois campos na interface
+    if (!motivo) return alert("⚠️ Por favor, selecione o motivo!");
+    if (!obs) return alert("⚠️ Por favor, preencha a observação detalhada!");
 
-    const prefixo = intercorrenciaFinal === "CONCLUÍDO" ? "[OBS]" : "[STANDBY]";
-    intercorrenciaFinal = `${prefixo} ${motivo} | Obs: ${obs}`;
+    // Identifica se a quebra veio por falta de bipes ou por divergência de volume
+    const faltantes = window.qtdFaltantesLoteAtual || 0;
+    const prefixo = faltantes > 0 ? `[PENDENTE ${faltantes} ITENS]` : "[DIVERGENCIA VOLUMES]";
     
+    // Concatena mantendo a estrutura limpa para a string do payload
+    intercorrenciaFinal = `${prefixo} Motivo: ${motivo} | Obs: ${obs}`;
+    
+    // Limpa os campos internos para que não fiquem preenchidos em uma próxima carga
+    if (motivoSelect) motivoSelect.value = "";
+    if (obsInput) obsInput.value = "";
+
+    // Retorna para a tela principal
     showScreen('screen-main'); 
     
-    // Sempre prepara a assinatura após sair da tela de intercorrência
+    // Esconde leitores físicos para focar a visão na coleta da assinatura
+    const leitorUsb = document.getElementById("container-leitor-usb");
+    const leitorCam = document.getElementById("reader");
+    if (leitorUsb) leitorUsb.style.setProperty("display", "none", "important");
+    if (leitorCam) leitorCam.style.setProperty("display", "none", "important");
+
+    // Ativa imediatamente a busca por GPS e abre o Canvas para o desenho da assinatura
     await prepararFaseAssinatura(btnMain, areaAss);
 }
 
