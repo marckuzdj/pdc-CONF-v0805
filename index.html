@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v22</h3>
+    <h3>Passagem de Carga | Conferência v23</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -304,6 +304,7 @@ let enviandoDados = false;
 let processandoCadastro = false;
 let validandoAgora = false;
 let pulouComentarioFinal = false; // Nova flag de controle
+window.aparelhoUtilizadoNoLote = sessionStorage.getItem("dispositivoSessao") || (window.innerWidth > 768 ? "via USB" : "via Mobile");
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -505,7 +506,7 @@ window.onload = carregarDadosIniciais;
 // --- 4. ROTINA DE LOGIN E CADASTRO ---
 // --- FUNÇÃO DE LOGIN COM SPINNER, VALIDAÇÃO DE TRANSPORTADORA E CASE-INSENSITIVE TOTAL ---
 async function realizarLogin() {
-    // 1. Trava global para evitar duplo clique
+    // 1. Trava global para evitar duplo clique (Mantido)
     if (typeof enviandoDados !== 'undefined' && enviandoDados) return;
 
     // 2. Captura elementos usando o ID da tela (Isolamento total)
@@ -522,7 +523,7 @@ async function realizarLogin() {
         return alert("⚠️ Preencha todos os campos corretamente.");
     }
 
-    // 4. Ativa travas e Spinner
+    // 4. Ativa travas e Spinner (Mantido)
     if (typeof enviandoDados !== 'undefined') enviandoDados = true;
     btnLogin.disabled = true;
     const textoOriginal = btnLogin.innerHTML;
@@ -539,9 +540,20 @@ async function realizarLogin() {
             if (typeof tocarBeep === 'function') tocarBeep('sucesso');
             alert("✅ Bem-vindo(a), " + data.nome);
             
-            // Injeta dados na tela principal
+            // -----------------------------------------------------------------
+            // INJEÇÃO CIRÚRGICA: DETECÇÃO DO HARDWARE LOGO APÓS O LOGIN BEM-SUCEDIDO
+            // -----------------------------------------------------------------
+            const usbContainer = document.getElementById("container-leitor-usb");
+            const deTelaGrande = window.innerWidth > 768;
+            const isUsb = deTelaGrande || (usbContainer && usbContainer.style.display !== "none" && !usbContainer.classList.contains('hidden'));
+            
+            // Persiste estritamente na sessão para durar por todo o ciclo operacional
+            sessionStorage.setItem("dispositivoSessao", isUsb ? "via USB" : "via Mobile");
+            window.aparelhoUtilizadoNoLote = isUsb ? "via USB" : "via Mobile";
+            // -----------------------------------------------------------------
+
+            // Injeta dados na tela principal (Mantido)
             document.getElementById('usuario').value = data.nome;
-            // Mantemos o valor original do Select para exibição/relatório se necessário
             document.getElementById('transp').value = document.getElementById('login-transp').value;
             
             showScreen('screen-main');
@@ -560,6 +572,7 @@ async function realizarLogin() {
         if (typeof enviandoDados !== 'undefined') enviandoDados = false;
     }
 }
+
 
 // --- FUNÇÃO DE RECUPERAÇÃO ATUALIZADA (CASE-INSENSITIVE + JSONP) ---
 async function solicitarRecuperacao() {
