@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v3</h3>
+    <h3>Passagem de Carga | Conferência v4</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -695,19 +695,21 @@ async function atualizarDadosExtras() {
 
     if (info) {
         // --- VALIDAÇÃO DE TOKEN INTERCEPTADA ---
+        // Converte o token da planilha para String e limpa espaços
         const tokenCorreto = info.Token ? info.Token.toString().trim() : "";
         const tokenUsuario = prompt("Por favor, insira o TOKEN de segurança para este Romaneio:");
 
-        // Garante validação mesmo com espaços em branco inseridos pelo usuário
-        if (tokenUsuario === null || tokenUsuario.trim() !== tokenCorreto) {
+        // Validação robusta: ignora cancelamentos, remove espaços e compara estritamente como texto
+        if (tokenUsuario === null || tokenUsuario.trim() !== tokenCorreto || tokenCorreto === "") {
             alert("❌ Token incorreto ou não informado! Acesso negado.");
-            selectRomaneio.value = ""; 
+            selectRomaneio.value = ""; // Reseta a seleção no HTML
             if(typeof limparCamposExtras === 'function') limparCamposExtras();
             if (statusInfo) statusInfo.style.display = "none";
             const progressoContainer = document.getElementById("progresso-lote") || document.querySelector(".progress-container");
             if (progressoContainer) progressoContainer.style.display = "none";
-            return; 
+            return; // Bloqueia a execução do restante da função
         }
+        
         // Preenche campos informativos
         document.getElementById("campo_operador").value = info.Operador || "";
         document.getElementById("transp").value = info.Transp || "";
