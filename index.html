@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v19</h3>
+    <h3>Passagem de Carga | Conferência v20</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -1246,6 +1246,9 @@ async function finalizarLote() {
     btn.disabled = true;
     btn.innerText = "🔍 Validando...";
 
+    // RESET CRÍTICO: Garante que o lote comece assumindo 100% (zero faltantes)
+    window.qtdFaltantesLoteAtual = 0;
+
     // CAPTURA PREVENTIVA: Identifica o dispositivo ativo antes de ocultar os elementos visuais
     const usbContainer = document.getElementById("container-leitor-usb");
     const leitorUsbAtivo = usbContainer && usbContainer.style.display !== "none" && !usbContainer.classList.contains('hidden');
@@ -1253,7 +1256,6 @@ async function finalizarLote() {
 
     try {
         const response = await fetch(`${urlSheets}?action=verificarPendencias&romaneio=${encodeURIComponent(romaneioVal)}`);
-
         const check = await response.json();
 
         // 1. Verifica Pendências (Nova Lógica com Alerta de Contagem e Prompt Obrigatório)
@@ -1276,6 +1278,7 @@ async function finalizarLote() {
         }
 
         // 2. Auditoria de Volumes (Apenas se 100% lido)
+
         const confirmouVolumes = confirm(`Confirmar o total de volumes: ${ttVolumes}?`);
         
         if (confirmouVolumes) {
