@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v5</h3>
+    <h3>Passagem de Carga | Conferência v6</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -698,19 +698,20 @@ async function atualizarDadosExtras() {
         // Converte o token da planilha para String e limpa espaços
         // --- DIAGNÓSTICO DO TOKEN (TEMPORÁRIO) ---
         // Exibe um alerta com todas as propriedades do Romaneio para identificar o erro de índice
-        alert("DEBUG - Propriedades deste Romaneio:\n" + JSON.stringify(info, null, 2));
-
+        // --- 5. LOGICA DE CONFERÊNCIA (SINCRO COM ÂNCORA DE PROGRESSO) ---
+        // VALIDAÇÃO DE TOKEN INTERCEPTADA (Ajustada para o novo mapeamento)
         const tokenCorreto = info.Token ? info.Token.toString().trim() : "";
-        const tokenUsuario = prompt("Por favor, insira o TOKEN de segurança para este Romaneio (Esperado: '" + tokenCorreto + "'):");
+        const tokenUsuario = prompt("Por favor, insira o TOKEN de segurança para este Romaneio:");
 
-        
-        // Preenche campos informativos
-        document.getElementById("campo_operador").value = info.Operador || "";
-        document.getElementById("transp").value = info.Transp || "";
-        const totalPedidos = parseInt(info.TTPedidos) || 0;
-        document.getElementById("total_pedidos").value = totalPedidos;
-        document.getElementById("total_volumes").value = info.TTvols || 0;
-
+        if (tokenUsuario === null || tokenUsuario.trim() !== tokenCorreto || tokenCorreto === "") {
+            alert("❌ Token incorreto ou não informado! Acesso negado.");
+            selectRomaneio.value = ""; 
+            if(typeof limparCamposExtras === 'function') limparCamposExtras();
+            if (statusInfo) statusInfo.style.display = "none";
+            const progressoContainer = document.getElementById("progresso-lote") || document.querySelector(".progress-container");
+            if (progressoContainer) progressoContainer.style.display = "none";
+            return; 
+        }
         // --- CORREÇÃO: Força a exibição do container de progresso que o reset escondeu ---
         // Verifique se o ID é 'progresso-lote' ou a classe '.progress-container'
         const progressoContainer = document.getElementById("progresso-lote") || document.querySelector(".progress-container");
