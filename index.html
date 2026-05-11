@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v14</h3>
+    <h3>Passagem de Carga | Conferência v15</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -875,7 +875,7 @@ async function atualizarStatusTempoReal() {
 }
 
     
-// --- FUNÇÃO DE SCAN ADAPTADA (PROGRESSO ACUMULADO) ---
+// --- FUNÇÃO DE SCAN ADAPTADA (PROGRESSO ACUMULADO COM SYNC STATUS) ---
 async function onScanSuccess(decodedText) {
     if (validandoAgora) return;
 
@@ -899,6 +899,15 @@ async function onScanSuccess(decodedText) {
     validandoAgora = true;
     status.innerText = "🔍 Validando: " + barcodeLimpo + "...";
 
+    // --- CÁLCULO ANTECIPADO DO PROGRESSO PARA O STATUS EM TEMPO REAL ---
+    const totalAcumuladoProvavel = jaLidosNoSheets + codigosLidos.length + 1;
+    const totalPedidosGeral = parseInt(document.getElementById("total_pedidos").value) || 0;
+    const percentualCalculado = totalPedidosGeral > 0 ? Math.round((totalAcumuladoProvavel / totalPedidosGeral) * 100) : 0;
+    
+    // Captura o texto exato do elemento HTML se ele já existir ou monta a string correspondente em lote
+    const elementoTxtProgresso = document.getElementById("txt-progresso");
+    const textoStatusAtual = elementoTxtProgresso ? elementoTxtProgresso.innerText.trim() : `${totalAcumuladoProvavel} / ${totalPedidosGeral} Pedidos (${percentualCalculado}%)`;
+
     try {
         const params = new URLSearchParams({
             action: "validarBarcode",
@@ -906,7 +915,8 @@ async function onScanSuccess(decodedText) {
             romaneio: romaneioVal,
             conferente: usuario,
             confirmado: "OK",
-            data_conferencia: new Date().toLocaleString("pt-BR") 
+            data_conferencia: new Date().toLocaleString("pt-BR"),
+            status_lote: textoStatusAtual // Envia a string (ex: "13 / 20 Pedidos (65%)") no mesmo GET de validação
         });
 
         const response = await fetch(`${urlSheets}?${params.toString()}`);
@@ -929,27 +939,12 @@ async function onScanSuccess(decodedText) {
             const lista = document.getElementById("itens-lidos");
             lista.innerHTML = `
                 <div class="item-codigo">
-                    <b>Item ${totalAcumulado}</b> de ${document.getElementById("total_pedidos").value}<br>
+                    <b>Item ${totalAcumulado}</b> de ${totalPedidosGeral}<br>
                     <span>${barcodeLimpo}</span> <span style="color:var(--success)">✓</span>
                 </div>` + lista.innerHTML;
 
             status.innerText = "✅ VALIDADO E ATUALIZADO";
             status.style.background = "#d4edda";
-
-            // --- ATUALIZAÇÃO DO STATUS EM TEMPO REAL NA PLANILHA ---
-            // Captura o texto atualizado do elemento do progresso (ex: "13 / 20 Pedidos (65%)")
-            const elementoTxtProgresso = document.getElementById("txt-progresso");
-            const textoStatusAtual = elementoTxtProgresso ? elementoTxtProgresso.innerText.trim() : `${totalAcumulado} lidos`;
-
-            // Envia silenciosamente para o backend processar via doPost original
-            fetch(urlSheets, {
-                method: 'POST',
-                body: JSON.stringify({
-                    romaneio: romaneioVal,
-                    status_lote: textoStatusAtual
-                })
-            }).catch(e => console.warn("Erro background status sync:", e));
-
         } else {
             if(typeof tocarBeep === 'function') tocarBeep('erro');
             status.innerText = "❌ " + (result.error || "INVÁLIDO");
@@ -969,6 +964,7 @@ async function onScanSuccess(decodedText) {
         setTimeout(() => { validandoAgora = false; }, 800); 
     }
 }
+
 
 
     
