@@ -719,7 +719,15 @@ async function atualizarDadosExtras() {
             console.log("Validação de Token executada:", dataCheck);
             
             if (!dataCheck.valido) {
-                alert(`❌ Token incorreto! Acesso negado ao Romaneio.\n\n(Dica de Sistema: O token digitado não bate com a base de dados).`);
+                // Captura o token tratado direto do banco retornado no debug do servidor
+                const tokenEsperadoPeloSheets = dataCheck.debug_esperado || "NÃO ENCONTRADO/VAZIO";
+                
+                // Exibe o token esperado no alerta para comparação visual
+                alert(`❌ Token incorreto! Acesso negado ao Romaneio.\n\n` +
+                      `Digitado: "${tokenUsuario}"\n` +
+                      `Esperado pelo Servidor: "${tokenEsperadoPeloSheets}"\n\n` +
+                      `(Dica: Se o esperado vier como VAZIO ou antigo, sua urlSheets no HTML está desatualizada).`);
+
                 selectRomaneio.value = "";
                 if (typeof limparCamposExtras === 'function') limparCamposExtras();
                 if (statusInfo) statusInfo.style.display = "none";
@@ -826,6 +834,7 @@ async function atualizarDadosExtras() {
         }
     }
 }
+
 
 
 
