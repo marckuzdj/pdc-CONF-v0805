@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v15</h3>
+    <h3>Passagem de Carga | Conferência v16</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -875,7 +875,7 @@ async function atualizarStatusTempoReal() {
 }
 
     
-// --- FUNÇÃO DE SCAN ADAPTADA (PROGRESSO ACUMULADO COM SYNC STATUS) ---
+// --- FUNÇÃO DE SCAN ADAPTADA (PROGRESSO COM AUDITORIA DO SERVIDOR) ---
 async function onScanSuccess(decodedText) {
     if (validandoAgora) return;
 
@@ -899,15 +899,6 @@ async function onScanSuccess(decodedText) {
     validandoAgora = true;
     status.innerText = "🔍 Validando: " + barcodeLimpo + "...";
 
-    // --- CÁLCULO ANTECIPADO DO PROGRESSO PARA O STATUS EM TEMPO REAL ---
-    const totalAcumuladoProvavel = jaLidosNoSheets + codigosLidos.length + 1;
-    const totalPedidosGeral = parseInt(document.getElementById("total_pedidos").value) || 0;
-    const percentualCalculado = totalPedidosGeral > 0 ? Math.round((totalAcumuladoProvavel / totalPedidosGeral) * 100) : 0;
-    
-    // Captura o texto exato do elemento HTML se ele já existir ou monta a string correspondente em lote
-    const elementoTxtProgresso = document.getElementById("txt-progresso");
-    const textoStatusAtual = elementoTxtProgresso ? elementoTxtProgresso.innerText.trim() : `${totalAcumuladoProvavel} / ${totalPedidosGeral} Pedidos (${percentualCalculado}%)`;
-
     try {
         const params = new URLSearchParams({
             action: "validarBarcode",
@@ -915,8 +906,7 @@ async function onScanSuccess(decodedText) {
             romaneio: romaneioVal,
             conferente: usuario,
             confirmado: "OK",
-            data_conferencia: new Date().toLocaleString("pt-BR"),
-            status_lote: textoStatusAtual // Envia a string (ex: "13 / 20 Pedidos (65%)") no mesmo GET de validação
+            data_conferencia: new Date().toLocaleString("pt-BR") // Parâmetro simplificado e limpo
         });
 
         const response = await fetch(`${urlSheets}?${params.toString()}`);
@@ -926,10 +916,11 @@ async function onScanSuccess(decodedText) {
             if(typeof tocarBeep === 'function') tocarBeep('sucesso');
             codigosLidos.push(barcodeLimpo);
 
-            // --- CÁLCULO DO PROGRESSO REAL ACUMULADO ---
+            // --- CÁLCULO DO PROGRESSO REAL ACUMULADO LOCAL ---
             const totalAcumulado = jaLidosNoSheets + codigosLidos.length;
+            const totalPedidosGeral = parseInt(document.getElementById("total_pedidos").value) || 0;
             
-            // Atualiza Contador e Barra de Progresso com o Total Real
+            // Atualiza Contador e Barra de Progresso com o Total Real na Tela
             contadorEl.innerText = totalAcumulado;
             if (typeof atualizarBarraProgresso === "function") {
                 atualizarBarraProgresso(totalAcumulado); 
@@ -964,6 +955,7 @@ async function onScanSuccess(decodedText) {
         setTimeout(() => { validandoAgora = false; }, 800); 
     }
 }
+
 
 
 
