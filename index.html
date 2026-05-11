@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v11</h3>
+    <h3>Passagem de Carga | Conferência v12</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -715,18 +715,9 @@ async function atualizarDadosExtras() {
             const resCheck = await fetch(urlCheck);
             const dataCheck = await resCheck.json();
             
-            // Log de diagnóstico para o console de desenvolvedor (F12)
-            console.log("Validação de Token executada:", dataCheck);
-            
             if (!dataCheck.valido) {
-                // Captura o token tratado direto do banco retornado no debug do servidor
-                const tokenEsperadoPeloSheets = dataCheck.debug_esperado || "NÃO ENCONTRADO/VAZIO";
-                
-                // Exibe o token esperado no alerta para comparação visual
-                alert(`❌ Token incorreto! Acesso negado ao Romaneio.\n\n` +
-                      `Digitado: "${tokenUsuario}"\n` +
-                      `Esperado pelo Servidor: "${tokenEsperadoPeloSheets}"\n\n` +
-                      `(Dica: Se o esperado vier como VAZIO ou antigo, sua urlSheets no HTML está desatualizada).`);
+                // Alerta padrão limpo e sem códigos de debug para o usuário final
+                alert("❌ Token incorreto! Acesso negado ao Romaneio.");
 
                 selectRomaneio.value = "";
                 if (typeof limparCamposExtras === 'function') limparCamposExtras();
@@ -834,6 +825,7 @@ async function atualizarDadosExtras() {
         }
     }
 }
+
 
 
 
