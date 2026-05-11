@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v13</h3>
+    <h3>Passagem de Carga | Conferência v14</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -850,6 +850,31 @@ function tocarBeep(tipo) {
     osc.stop(audioCtx.currentTime + 0.5);
 }
 
+// --- ADICIONE LOGO APÓS COMPUTAR UM BIPE VÁLIDO NA TELA ---
+async function atualizarStatusTempoReal() {
+    const romaneioAtual = document.getElementById("romaneio").value;
+    const elementoProgresso = document.getElementById("txt-progresso");
+    
+    if (!romaneioAtual || !elementoProgresso) return;
+    
+    const statusProgresso = elementoProgresso.innerText.trim();
+
+    try {
+        // Envia silenciosamente em background para não travar a velocidade dos bipes do operador
+        fetch(urlSheets, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: "atualizarStatusBipe", // Rota dedicada ou reaproveitada
+                romaneio: romaneioAtual,
+                status_lote: statusProgresso
+            })
+        });
+    } catch (e) {
+        console.warn("Erro ao sincronizar status em tempo real:", e);
+    }
+}
+
+    
 // --- FUNÇÃO DE SCAN ADAPTADA (PROGRESSO ACUMULADO) ---
 async function onScanSuccess(decodedText) {
     if (validandoAgora) return;
@@ -910,6 +935,21 @@ async function onScanSuccess(decodedText) {
 
             status.innerText = "✅ VALIDADO E ATUALIZADO";
             status.style.background = "#d4edda";
+
+            // --- ATUALIZAÇÃO DO STATUS EM TEMPO REAL NA PLANILHA ---
+            // Captura o texto atualizado do elemento do progresso (ex: "13 / 20 Pedidos (65%)")
+            const elementoTxtProgresso = document.getElementById("txt-progresso");
+            const textoStatusAtual = elementoTxtProgresso ? elementoTxtProgresso.innerText.trim() : `${totalAcumulado} lidos`;
+
+            // Envia silenciosamente para o backend processar via doPost original
+            fetch(urlSheets, {
+                method: 'POST',
+                body: JSON.stringify({
+                    romaneio: romaneioVal,
+                    status_lote: textoStatusAtual
+                })
+            }).catch(e => console.warn("Erro background status sync:", e));
+
         } else {
             if(typeof tocarBeep === 'function') tocarBeep('erro');
             status.innerText = "❌ " + (result.error || "INVÁLIDO");
@@ -929,6 +969,7 @@ async function onScanSuccess(decodedText) {
         setTimeout(() => { validandoAgora = false; }, 800); 
     }
 }
+
 
     
 // --- LÓGICA DA BARRA (Meta: total_pedidos) ---
