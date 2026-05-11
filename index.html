@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v12</h3>
+    <h3>Passagem de Carga | Conferência v13</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -1090,6 +1090,10 @@ async function enviarDadosFinais() {
         const canvas = document.getElementById('canvasAssinatura');
         const assinaturaBase64 = canvas ? canvas.toDataURL("image/png") : "";
 
+        // --- CAPTURA EXATA E ALINHADA COM O SEU ID DO HTML ---
+        const elementoProgresso = document.getElementById("txt-progresso");
+        const statusProgresso = elementoProgresso ? elementoProgresso.innerText.trim() : "Conferência finalizada via APP";
+
         const payload = {
             action: "finalizarLote",
             romaneio: romaneioAtual,
@@ -1099,7 +1103,8 @@ async function enviarDadosFinais() {
             assinatura: assinaturaBase64,
             conferencia: new Date().toLocaleString("pt-BR"),
             intercorrencia: intercorrenciaFinal, 
-            obs_final: "Conferência finalizada via APP"
+            obs_final: "Conferência finalizada via APP",
+            status_lote: statusProgresso // Injeta o texto exato do seu ID (ex: "13 / 20 Pedidos (65%)")
         };
 
         const response = await fetch(urlSheets, {
@@ -1166,6 +1171,8 @@ async function enviarDadosFinais() {
         }
     }
 }
+
+
 
 
 // Função auxiliar para garantir que o botão volte ao normal
