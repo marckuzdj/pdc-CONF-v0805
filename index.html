@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v20</h3>
+    <h3>Passagem de Carga | Conferência v21</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -872,6 +872,12 @@ async function onScanSuccess(decodedText) {
     const romaneioVal = document.getElementById("romaneio").value;
     const usuario = document.getElementById("usuario").value;
     const status = document.getElementById("status-info");
+    // RASTREADOR DE DISPOSITIVO EM TEMPO REAL: Salva o tipo de leitor que gerou o bipe válido
+    const usbContainer = document.getElementById("container-leitor-usb");
+    const isUsb = usbContainer && usbContainer.style.display !== "none" && !usbContainer.classList.contains('hidden');
+    window.aparelhoUtilizadoNoLote = isUsb ? "via USB" : "via Mobile";
+
+    const barcodeLimpo = decodedText.trim();
     
     // 1. RECUPERAÇÃO DA ÂNCORA: Lê o histórico sincronizado do Sheets
     const contadorEl = document.getElementById("contador");
@@ -1108,21 +1114,26 @@ async function enviarDadosFinais() {
         const canvas = document.getElementById('canvasAssinatura');
         const assinaturaBase64 = canvas ? canvas.toDataURL("image/png") : "";
 
-        // 1. CAPTURA O STATUS VISUAL DA TELA
+        // 1. CAPTURA O STATUS VISUAL DIRETO DA TELA (EX: "13 / 20 Pedidos (65%)")
         const elementoProgresso = document.getElementById("txt-progresso");
-        const statusProgresso = elementoProgresso ? elementoProgresso.innerText.trim() : "Conferência finalizada via APP";
+        const statusProgresso = elementoProgresso ? elementoProgresso.innerText.trim() : "";
 
-        // 2. RECUPERAÇÃO DO DISPOSITIVO CAPTURADO NA FASE 1
-        const sufixoDispositivo = window.dispositivoConferencia || "via Mobile";
+        // 2. DETECÇÃO ROBUSTA DO DISPOSITIVO ATIVO NO MOMENTO DO ENVIO
+        // Checa se a variável global do primeiro bipe existe, senão inspeciona se o input ou container USB está visível na página
+        const usbContainer = document.getElementById("container-leitor-usb");
+        const inputUsb = document.getElementById("input-usb");
+        const usarUsb = window.aparelhoUtilizadoNoLote === "via USB" || 
+                        (usbContainer && usbContainer.style.display !== "none" && !usbContainer.classList.contains('hidden')) ||
+                        (inputUsb && document.activeElement === inputUsb);
+        
+        const sufixoDispositivo = usarUsb ? "via USB" : "via Mobile";
 
-        // 3. IDENTIFICAÇÃO DE LEITURA (100% OU PARCIAL)
-        const faltantesLote = window.qtdFaltantesLoteAtual || 0;
-        const textoObsDefinitivo = faltantesLote > 0 
-            ? `Conferencia Parcial ${sufixoDispositivo}` 
-            : `Conferencia Finalizada ${sufixoDispositivo}`;
+        // 3. IDENTIFICAÇÃO DE LEITURA BASEADA NO CARACTERE "100%" DO PROGRESSO VISUAL
+        const textoObsDefinitivo = statusProgresso.includes("100%") 
+            ? `Conferencia Finalizada ${sufixoDispositivo}` 
+            : `Conferencia Parcial ${sufixoDispositivo}`;
 
         const payload = {
-
             action: "finalizarLote",
             romaneio: romaneioAtual,
             usuario: document.getElementById("usuario").value,
@@ -1131,7 +1142,7 @@ async function enviarDadosFinais() {
             assinatura: assinaturaBase64,
             conferencia: new Date().toLocaleString("pt-BR"),
             intercorrencia: intercorrenciaFinal, 
-            obs_final: textoObsDefinitivo, // Injeta dinamicamente o texto com a regra do dispositivo
+            obs_final: textoObsDefinitivo, // Injeta a string calibrada por texto puro (100%) e hardware
             status_lote: statusProgresso 
         };
 
@@ -1200,8 +1211,6 @@ async function enviarDadosFinais() {
 
 
 
-
-
 // Função auxiliar para garantir que o botão volte ao normal
 function resetarTravaEnvio(btn, area) {
     enviandoDados = false;
@@ -1246,37 +1255,22 @@ async function finalizarLote() {
     btn.disabled = true;
     btn.innerText = "🔍 Validando...";
 
-    // RESET CRÍTICO: Garante que o lote comece assumindo 100% (zero faltantes)
-    window.qtdFaltantesLoteAtual = 0;
-
-    // CAPTURA PREVENTIVA: Identifica o dispositivo ativo antes de ocultar os elementos visuais
-    const usbContainer = document.getElementById("container-leitor-usb");
-    const leitorUsbAtivo = usbContainer && usbContainer.style.display !== "none" && !usbContainer.classList.contains('hidden');
-    window.dispositivoConferencia = leitorUsbAtivo ? "via USB" : "via Mobile";
-
     try {
         const response = await fetch(`${urlSheets}?action=verificarPendencias&romaneio=${encodeURIComponent(romaneioVal)}`);
         const check = await response.json();
 
-        // 1. Verifica Pendências (Nova Lógica com Alerta de Contagem e Prompt Obrigatório)
+        // 1. Verifica Pendências (Standby)
         if (check.faltantes && check.faltantes.length > 0) {
             const qtdFaltantes = check.faltantes.length;
-            
-            // Mensagem e fluxo customizado conforme especificação estrutural
-            const querContinuar = confirm(`⚠️ Atenção: Faltam conferir ${qtdFaltantes} itens neste lote.\n\nPara abortar a conferencia do romaneio, é obrigatório registrar intercorrencia. Continuar?`);
-            
-            if (querContinuar) {
-                // Guarda de forma segura o saldo no escopo do cliente para o prefixo
-                window.qtdFaltantesLoteAtual = qtdFaltantes;
-                pulouComentarioFinal = true; // Desativa o prompt duplo ao fim
+            if (confirm(`⚠️ Atenção: Faltam conferir ${qtdFaltantes} itens neste lote.\n\nPara abortar a conferencia do romaneio, é obrigatório registrar intercorrencia. Continuar?`)) {
+                pulouComentarioFinal = true;
                 showScreen('screen-intercorrencia'); 
             }
-            
             btn.disabled = false;
             btn.innerText = "Finalizar Lote";
             return;
         }
-
+        // ... restante da sua função finalizarLote original ...
         // 2. Auditoria de Volumes (Apenas se 100% lido)
 
         const confirmouVolumes = confirm(`Confirmar o total de volumes: ${ttVolumes}?`);
