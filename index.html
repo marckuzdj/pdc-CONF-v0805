@@ -110,7 +110,7 @@
 
 <!-- 1. TELA DE LOGIN -->
 <div id="screen-login" class="card"> <!-- Adicionado a classe card aqui -->
-    <h3>Passagem de Carga | Conferência v8</h3>
+    <h3>Passagem de Carga | Conferência v10</h3>
     <label>E-mail</label>
     <input type="email" id="login-user" placeholder="seu@email.com">
     
@@ -711,19 +711,21 @@ async function atualizarDadosExtras() {
         }
         
         try {
-            // Consulta a planilha via API para conferir o token sem depender de cache local
             const urlCheck = `${urlSheets}?action=validarTokenRomaneio&romaneio=${encodeURIComponent(selectedId)}&token=${encodeURIComponent(tokenUsuario.trim())}`;
             const resCheck = await fetch(urlCheck);
             const dataCheck = await resCheck.json();
             
+            // Log de diagnóstico para o console de desenvolvedor (F12)
+            console.log("Validação de Token executada:", dataCheck);
+            
             if (!dataCheck.valido) {
-                alert("❌ Token incorreto! Acesso negado ao Romaneio.");
+                alert(`❌ Token incorreto! Acesso negado ao Romaneio.\n\n(Dica de Sistema: O token digitado não bate com a base de dados).`);
                 selectRomaneio.value = "";
                 if (typeof limparCamposExtras === 'function') limparCamposExtras();
                 if (statusInfo) statusInfo.style.display = "none";
                 const progressoContainer = document.getElementById("progresso-lote") || document.querySelector(".progress-container");
                 if (progressoContainer) progressoContainer.style.display = "none";
-                return; // Trava o fluxo completamente
+                return;
             }
         } catch (errorDom) {
             console.error("Erro na verificação do token:", errorDom);
